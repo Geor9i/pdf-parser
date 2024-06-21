@@ -7,6 +7,6 @@ extractButton.addEventListener('click', async () => {
     if(fileInput.files.length > 0) {
         const file = fileInput.files[0];
         const result = await pdfReader.read(file);
-        console.log(result);
+        // console.log(result);
     } 
 })

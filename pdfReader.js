@@ -25,20 +25,23 @@ export default class PDFReader {
             const page = await pdf.getPage(pageNum);
             const textContent = await page.getTextContent();
             const viewport = page.getViewport({ scale: 1 });
+            const { width: pageWidth, height: pageHeight } = viewport;
+            console.log({pageWidth, pageHeight});
 
             for (let item of textContent.items) {
                     const transform = pdfjsLib.Util.transform(viewport.transform, item.transform);
                     const [ scaleX, skewX, skewY, scaleY, x, y ] = transform;
                     pageData.push({ text: item.str, x, y, scaleX, scaleY, skewX, skewY, width: item.width, height: item.height });
             }
-            this.reconstructTable(pageData);
+            this.reconstructPage(pageData, pageWidth, pageHeight);
         }
         return tableData;
     }
 
-    reconstructTable(textItems) {
+
+    reconstructPage(textItems, pageWidth, pageHeight) {
         // Group by rows
-        const rowTolerance = 8;
+        const rowTolerance = 1; // Tolerance for row height
         const rows = [];
         textItems.sort((a, b) => a.y - b.y);  // Sort by y-coordinate to group rows
     
@@ -46,7 +49,8 @@ export default class PDFReader {
         let currentY = textItems[0].y;
     
         textItems.forEach(item => {
-            if (Math.abs(item.y - currentY) > rowTolerance) {  // Tolerance for row height
+            if (Math.abs(item.y - currentY) > rowTolerance) {
+                currentRow.sort((a, b) => a.x - b.x);
                 rows.push(currentRow);
                 currentRow = [];
                 currentY = item.y;
@@ -54,13 +58,7 @@ export default class PDFReader {
             currentRow.push(item);
         });
         rows.push(currentRow);
-        // Sort each row by x-coordinate to order columns
-        rows.forEach(row => row.sort((a, b) => a.x - b.x));
-    
         // Log the table
-        rows.forEach(row => {
-            console.log(row.map(item => item.text).join('\t'));
-        });
     
         // Example: Create a table element
         const tableElement = document.createElement('table');
